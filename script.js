@@ -1,9 +1,6 @@
 'use strict';
 
-// BANKIST APP
-
-// DIFFERENT DATA! Contains movement dates, currency and locale
-
+// Accounts
 const account1 = {
   owner: 'Tofig Amraslanov',
   movements: [200, 455.23, -306.5, 25000, -642.21, -133.9, 79.97, 1300],
@@ -79,17 +76,28 @@ const currencies = new Map([
   ['AZE', 'Azerbaijan manat'],
 ]);
 
-const displaysMovements = function (movements, sort = false) {
+// Functions
+const displaysMovements = function (account, sort = false) {
   containerMovements.innerHTML = '';
 
-  const movs = sort ? movements.slice().sort((a, b) => a - b) : movements;
+  const movements = sort
+    ? account.movements.slice().sort((a, b) => a - b)
+    : account.movements;
 
-  movs.forEach(function (movement, index) {
+  movements.forEach(function (movement, index) {
     const type = movement > 0 ? 'deposit' : 'withdrawal';
+
+    const date = new Date(account.movementsDates[index]);
+    const day = `${date.getDate()}`.padStart(2, '0');
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const year = date.getFullYear();
+    const displayDate = `${day}/${month}/${year}`;
+
     const html = `<div class="movements__row">
                         <div class="movements__type movements__type--${type}">${
       index + 1
     } ${type}</div>
+                        <div class="movements__date">${displayDate}</div>
                         <div class="movements__value">${movement.toFixed(
                           2
                         )}€</div>
@@ -141,7 +149,7 @@ createUserName(accounts);
 
 const updateUI = function (account) {
   // Display movements
-  displaysMovements(account.movements);
+  displaysMovements(account);
 
   // Display balance
   calcDisplayBalance(account);
@@ -152,19 +160,28 @@ const updateUI = function (account) {
 
 // Event handler
 let currentAccount;
+
 btnLogin.addEventListener('click', function (e) {
   // Prevent form from submitting
   e.preventDefault();
   currentAccount = accounts.find(
     account => account.username === inputLoginUsername.value
   );
-  console.log(currentAccount);
   if (currentAccount?.pin === +inputLoginPin.value) {
     // Display UI and message
     labelWelcome.textContent = `Welcome back, ${
       currentAccount.owner.split(' ')[0]
     }`;
     containerApp.style.opacity = '1';
+
+    // Creat current date and time
+    const now = new Date();
+    const day = `${now.getDate()}`.padStart(2, '0');
+    const month = `${now.getMonth() + 1}`.padStart(2, '0');
+    const year = now.getFullYear();
+    const hour = `${now.getHours()}`.padStart(2, '0');
+    const minute = `${now.getMinutes()}`.padStart(2, '0');
+    labelDate.textContent = `${day}/${month}/${year}, ${hour}:${minute}`;
 
     // Clear input fields
     inputLoginUsername.value = inputLoginPin.value = '';
@@ -173,6 +190,7 @@ btnLogin.addEventListener('click', function (e) {
     updateUI(currentAccount);
   } else {
     alert('Wrong password or username');
+    inputLoginUsername.value = inputLoginPin.value = '';
     containerApp.style.opacity = '0';
   }
 });
@@ -195,9 +213,13 @@ btnTransfer.addEventListener('click', function (e) {
     currentAccount.movements.push(-amount);
     receiverAccount.movements.push(amount);
 
+    // Add transfer date
+    currentAccount.movementsDates.push(new Date().toISOString());
+    receiverAccount.movementsDates.push(new Date().toISOString());
+
     // Update UI
     updateUI(currentAccount);
-  }
+  } else alert("Receiver account wrong or you don't have enough money to transfer");
 });
 
 btnLoan.addEventListener('click', function (e) {
@@ -211,6 +233,9 @@ btnLoan.addEventListener('click', function (e) {
   ) {
     // Add movement
     currentAccount.movements.push(amount);
+
+    // Add transfer date
+    currentAccount.movementsDates.push(new Date().toISOString());
 
     // Update UI
     updateUI(currentAccount);
@@ -244,6 +269,6 @@ btnClose.addEventListener('click', function (e) {
 let isSorted = false;
 btnSort.addEventListener('click', function (e) {
   e.preventDefault();
-  displaysMovements(currentAccount.movements, !isSorted);
+  displaysMovements(currentAccount, !isSorted);
   isSorted = !isSorted;
 });
