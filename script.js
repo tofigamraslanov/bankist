@@ -17,8 +17,8 @@ const account1 = {
     '2021-04-08T23:36:17.929Z',
     '2021-04-10T10:51:36.790Z',
   ],
-  currency: 'AZN',
-  locale: 'az-AZ',
+  currency: 'USD',
+  locale: 'en-US',
 };
 
 const account2 = {
@@ -37,8 +37,8 @@ const account2 = {
     '2020-06-25T18:49:59.371Z',
     '2020-07-26T12:01:20.894Z',
   ],
-  currency: 'EUR',
-  locale: 'en-US',
+  currency: 'AZN',
+  locale: 'az-AZ',
 };
 
 const accounts = [account1, account2];
@@ -144,6 +144,7 @@ const calcDisplaySummary = function (account) {
   const incomes = account.movements
     .filter(movement => movement > 0)
     .reduce((accumulator, movement) => accumulator + movement, 0);
+
   labelSumIn.innerText = formatCurrency(
     incomes,
     account.locale,
@@ -153,6 +154,7 @@ const calcDisplaySummary = function (account) {
   const out = account.movements
     .filter(movement => movement < 0)
     .reduce((accumulator, movement) => accumulator + movement, 0);
+
   labelSumOut.textContent = formatCurrency(
     Math.abs(out),
     account.locale,
@@ -166,6 +168,7 @@ const calcDisplaySummary = function (account) {
       return interest >= 1;
     })
     .reduce((accumulator, movement) => accumulator + movement, 0);
+
   labelSumInterest.textContent = formatCurrency(
     interest,
     account.locale,
@@ -185,32 +188,48 @@ const createUserName = function (accounts) {
 createUserName(accounts);
 
 const updateUI = function (account) {
-  // Display movements
   displaysMovements(account);
 
-  // Display balance
   calcDisplayBalance(account);
 
-  // Display summary
   calcDisplaySummary(account);
 };
 
+const startLogOutTimer = function () {
+  const tick = function () {
+    const minute = String(Math.trunc(time / 60)).padStart(2, '0');
+    const second = String(time % 60).padStart(2, '0');
+
+    labelTimer.textContent = `${minute}:${second}`;
+
+    if (time === 0) {
+      clearInterval(timer);
+      labelWelcome.textContent = 'Log in to get started';
+      containerApp.style.opacity = '0';
+    }
+    time--;
+  };
+  let time = 600;
+
+  const timer = setInterval(tick, 1000);
+  return timer;
+};
+
 // Event handler
-let currentAccount;
+let currentAccount, timer;
 
 btnLogin.addEventListener('click', function (e) {
   e.preventDefault();
+
   currentAccount = accounts.find(
     account => account.username === inputLoginUsername.value
   );
   if (currentAccount?.pin === +inputLoginPin.value) {
-    // Display UI and message
     labelWelcome.textContent = `Welcome back, ${
       currentAccount.owner.split(' ')[0]
     }`;
     containerApp.style.opacity = '1';
 
-    // Creat current date and time
     const now = new Date();
     const options = {
       hour: 'numeric',
@@ -225,10 +244,12 @@ btnLogin.addEventListener('click', function (e) {
       options
     ).format(now);
 
-    // Clear input fields
     inputLoginUsername.value = inputLoginPin.value = '';
+    inputLoginPin.blur();
 
-    // Update UI
+    if (timer) clearInterval(timer);
+    timer = startLogOutTimer();
+
     updateUI(currentAccount);
   } else {
     alert('Wrong password or username');
@@ -252,16 +273,16 @@ btnTransfer.addEventListener('click', function (e) {
     currentAccount.balance >= amount &&
     receiverAccount?.username !== currentAccount.username
   ) {
-    // Doing transfer
     currentAccount.movements.push(-amount);
     receiverAccount.movements.push(amount);
 
-    // Add transfer date
     currentAccount.movementsDates.push(new Date().toISOString());
     receiverAccount.movementsDates.push(new Date().toISOString());
 
-    // Update UI
     updateUI(currentAccount);
+
+    clearInterval(timer);
+    timer = startLogOutTimer();
   } else alert("Receiver account wrong or you don't have enough money to transfer");
 });
 
@@ -274,17 +295,18 @@ btnLoan.addEventListener('click', function (e) {
     amount > 0 &&
     currentAccount.movements.some(movement => movement >= amount * 0.1)
   ) {
-    // Add movement
-    currentAccount.movements.push(amount);
+    setTimeout(function () {
+      currentAccount.movements.push(amount);
 
-    // Add transfer date
-    currentAccount.movementsDates.push(new Date().toISOString());
+      currentAccount.movementsDates.push(new Date().toISOString());
 
-    // Update UI
-    updateUI(currentAccount);
+      updateUI(currentAccount);
 
-    inputLoanAmount.value = '';
+      clearInterval(timer);
+      timer = startLogOutTimer();
+    }, 2500);
   }
+  inputLoanAmount.value = '';
 });
 
 btnClose.addEventListener('click', function (e) {
@@ -299,10 +321,8 @@ btnClose.addEventListener('click', function (e) {
     );
     console.log(index);
 
-    // Delete account
     accounts.splice(index, 1);
 
-    // Hide UI
     containerApp.style.opacity = '0';
   }
 
