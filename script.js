@@ -144,7 +144,6 @@ const calcDisplaySummary = function (account) {
   const incomes = account.movements
     .filter(movement => movement > 0)
     .reduce((accumulator, movement) => accumulator + movement, 0);
-
   labelSumIn.innerText = formatCurrency(
     incomes,
     account.locale,
@@ -154,7 +153,6 @@ const calcDisplaySummary = function (account) {
   const out = account.movements
     .filter(movement => movement < 0)
     .reduce((accumulator, movement) => accumulator + movement, 0);
-
   labelSumOut.textContent = formatCurrency(
     Math.abs(out),
     account.locale,
@@ -168,7 +166,6 @@ const calcDisplaySummary = function (account) {
       return interest >= 1;
     })
     .reduce((accumulator, movement) => accumulator + movement, 0);
-
   labelSumInterest.textContent = formatCurrency(
     interest,
     account.locale,
@@ -215,8 +212,16 @@ const startLogOutTimer = function () {
   return timer;
 };
 
+const updateTime = function () {
+  const now = new Date();
+  const formattedDate = formatter.format(now);
+
+  labelDate.textContent = formattedDate;
+};
+
 // Event handler
 let currentAccount, timer;
+let formatter;
 
 btnLogin.addEventListener('click', function (e) {
   e.preventDefault();
@@ -230,7 +235,6 @@ btnLogin.addEventListener('click', function (e) {
     }`;
     containerApp.style.opacity = '1';
 
-    const now = new Date();
     const options = {
       hour: 'numeric',
       minute: 'numeric',
@@ -239,10 +243,11 @@ btnLogin.addEventListener('click', function (e) {
       year: 'numeric',
     };
 
-    labelDate.textContent = new Intl.DateTimeFormat(
-      currentAccount.locale,
-      options
-    ).format(now);
+    formatter = new Intl.DateTimeFormat(currentAccount.locale, options);
+
+    updateTime();
+
+    setInterval(updateTime, 1000);
 
     inputLoginUsername.value = inputLoginPin.value = '';
     inputLoginPin.blur();
